@@ -25,14 +25,8 @@ jobs:
     strategy:
       matrix:
         EDITION: [mace-lxqt-kwin]
-        BRANCH: [stable]
+        BRANCH: [unstable]
         SCOPE: [full]
-	include:
-	 - 
-	 EDITION: [mace-lxqt-kwin]
-	 BRANCH: [unstable]
-	 SCOPE: [minimal]
-	 kernel: ${{ needs.prepare-release.outputs.stable }}
     steps:
       - 
         uses: styfle/cancel-workflow-action@0.9.0
@@ -51,7 +45,7 @@ jobs:
           branch: ${{ matrix.branch }}
           scope: ${{ matrix.scope }}
           version: ${{ steps.time.outputs.time }}-development
-          kernel: linux66
+          kernel: linux68
           code-name: "Nightly-Build"
           release-tag: ${{ needs.prepare-release.outputs.release_tag }}
       -

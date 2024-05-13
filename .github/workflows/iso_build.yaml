@@ -1,73 +1,63 @@
-name: iso build
+name: iso_build
 on:
-  schedule:
-    - cron:  '30 2 * * 0'
   workflow_dispatch:
-  repository_dispatch:
-    types:
-    - iso_profile_update
-
-concurrency: 
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
+  schedule:
+    - cron:  '30 2 * * *'
 
 jobs:
   prepare-release:
     runs-on: ubuntu-22.04
     steps:
-      - uses: styfle/cancel-workflow-action@01ce38bf961b4e243a6342cbade0dbc8ba3f0432 # 0.12.0
+      - 
+        uses: styfle/cancel-workflow-action@0.9.0
         with:
           access_token: ${{ github.token }}
-      - id: time
-        uses: boredland/get-time-action@dbc808befb89eb33fee64f5f4abce4d2a5fa7cfd # tag=2.0.0
+      - 
+        id: time
+        uses: nanzm/get-time-action@v1.1
         with:
           format: 'YYYYMMDDHHmm'
-      - id: receive
-        uses: boredland/kernel-info@main
     outputs:
       release_tag: ${{ steps.time.outputs.time }}
-      longterm: ${{ steps.receive.outputs.longterm-pkg }}
-      stable: ${{ steps.receive.outputs.stable-pkg }}
   build-release:
     runs-on: ubuntu-22.04
     needs: [prepare-release]
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       matrix:
-        edition: [mace-lxqt-kwin]
-        branch: [stable]
-        scope: [full]
-        experimental: [true]
-        kernel: 
-          - ${{ needs.prepare-release.outputs.longterm }}
-        include:
-          - edition: mace-lxqt-kwin
-            branch: unstable
-            scope: minimal
-            kernel: ${{ needs.prepare-release.outputs.stable }}
-            experimental: true
+        EDITION: [mace-lxqt-kwin]
+        BRANCH: [stable]
+        SCOPE: [full]
+	kernel: ${{ needs.prepare-release.outputs.longterm }}
+	include:
+	 - 
+	 EDITION: [mace-lxqt-kwin]
+	 BRANCH: [unstable]
+	 SCOPE: [minimal]
+	 kernel: ${{ needs.prepare-release.outputs.stable }}
     steps:
-      - uses: styfle/cancel-workflow-action@01ce38bf961b4e243a6342cbade0dbc8ba3f0432 # 0.12.0
+      - 
+        uses: styfle/cancel-workflow-action@0.9.0
         with:
           access_token: ${{ github.token }}
-      - name: image-build-upload
-        uses: Manjaro/manjaro-iso-action@main
+      - 
+        id: time
+        uses: nanzm/get-time-action@v1.1
         with:
-          iso-profiles-repo: https://github.com/commonsourcecs/iso-profiles
+          format: 'YY.MM.DD'   
+      -
+        name: image-build-upload
+        uses: manjaro/manjaro-iso-action@main
+        with:
           edition: ${{ matrix.edition }}
           branch: ${{ matrix.branch }}
           scope: ${{ matrix.scope }}
-          kernel: ${{ matrix.kernel }}
+          version: ${{ steps.time.outputs.time }}-development
+          kernel: linux68
+          code-name: "Nightly-Build"
           release-tag: ${{ needs.prepare-release.outputs.release_tag }}
-  rollback:
-    runs-on: ubuntu-22.04
-    needs: [build-release]
-    if: ${{ failure() || cancelled() }}
-    steps:
-      - name: rollback
+      -
+        name: rollback
+        if: ${{ failure() || cancelled() }}
         run: |
           echo ${{ github.token }} | gh auth login --with-token
-          ASSET_COUNT=$(gh release view ${{ needs.prepare-release.outputs.release_tag }} --json "assets" --jq '.assets | length')
-          if [ "$ASSET_COUNT" -gt "2" ]; then exit 0;fi
           gh release delete ${{ needs.prepare-release.outputs.release_tag }} -y --repo ${{ github.repository }}
-          git push --delete origin ${{ needs.prepare-release.outputs.release_tag }}

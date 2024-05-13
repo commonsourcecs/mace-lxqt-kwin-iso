@@ -27,7 +27,6 @@ jobs:
         EDITION: [mace-lxqt-kwin]
         BRANCH: [stable]
         SCOPE: [full]
-	kernel: ${{ needs.prepare-release.outputs.longterm }}
 	include:
 	 - 
 	 EDITION: [mace-lxqt-kwin]
@@ -52,7 +51,7 @@ jobs:
           branch: ${{ matrix.branch }}
           scope: ${{ matrix.scope }}
           version: ${{ steps.time.outputs.time }}-development
-          kernel: linux68
+          kernel: linux66
           code-name: "Nightly-Build"
           release-tag: ${{ needs.prepare-release.outputs.release_tag }}
       -
